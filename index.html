@@ -203,6 +203,56 @@ window.dash=(function(){
 #dash-root .cl-pdf:disabled { cursor: progress; }
 #dash-root .cl-pdf:focus-visible, #dash-root .cl-btn:focus-visible, #dash-root .cl-filtros select:focus-visible { outline: 2px solid var(--cl-vermelho); outline-offset: 2px; }
 #dash-root .cl-pdf-msg { font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--cl-titulo); text-align: right; min-width: 0; }
+/* Gestão à vista (desde 22/10/2026, pedido do João): em telas largas na horizontal (monitor, TV), a Visão geral ocupa uma tela só.
+   Fontes e números crescem com a tela (vh/vw), a largura máxima some, a faixa de abertura fica compacta e a página vira uma grade:
+   números do board | balanço do dia | analistas · colunas · mês de abertura (altura calculada para caber na tela, --tv-alto).
+   A tabela "Prazo por analista" fica logo abaixo da dobra. Celular e telas estreitas continuam com o layout em coluna. */
+@media (min-width: 1100px) and (min-aspect-ratio: 4/3) {
+  #dash-root .cl { --cds-font-size-caption: clamp(11px, .36vw + .42vh, 26px); --cds-font-size-body: clamp(12px, .42vw + .5vh, 30px);
+    --cds-gap-sm: clamp(6px, .7vh, 16px); --cds-gap-md: clamp(8px, 1.1vh, 24px); --cds-gap-lg: clamp(10px, 1.4vh, 32px);
+    --cds-pad-sm: clamp(6px, .7vh, 16px); --cds-pad-md: clamp(6px, .9vh, 20px); --cds-pad-lg: clamp(8px, 1.1vh, 26px); padding-block-end: 1vh; }
+  #dash-root .cl-in { max-width: none; padding-left: max(16px, 1.6vw); padding-right: max(16px, 1.6vw); }
+  #dash-root .cl-faixa .cl-in { padding-block: 1.1vh .9vh; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 2vw; row-gap: .3vh; }
+  #dash-root .cl-faixa .cl-etiqueta, #dash-root .cl-faixa .sd-note { display: none; }
+  #dash-root .cl-h1 { font-size: clamp(1.3rem, 3.6vh, 4.2rem); white-space: nowrap; }
+  #dash-root .cl-faixa .sd-take { flex: 1 1 28rem; max-width: none; font-size: var(--cds-font-size-body); }
+  #dash-root .sd { gap: var(--cds-gap-md); }
+  #dash-root .sd-tabs { padding-block: var(--cds-gap-md) 0; }
+  #dash-root .sd-tab { padding: .45vh 1vw; }
+  #dash-root .sd-page { padding-block: 0; position: relative; }
+  #dash-root .cl-filtros { padding-block: .5vh; }
+  #dash-root .cl-filtros select { padding-block: .3vh; }
+  #dash-root .cl-h2 { font-size: clamp(1rem, 2.1vh, 2.6rem); }
+  #dash-root .sd-kpi-value { font-size: clamp(1.6rem, 4.6vh, 6rem); }
+  #dash-root .cl-bal-valor { font-size: clamp(1.15rem, 3vh, 4rem); }
+  #dash-root .sd-card h3 { font-size: clamp(.85rem, 1.7vh, 2rem); }
+  #dash-root .sd-legend i { width: 1.1vh; height: 1.1vh; min-width: 9px; min-height: 9px; }
+  #dash-root .cl-pdf { width: clamp(34px, 4.2vh, 64px); height: clamp(34px, 4.2vh, 64px); }
+  #dash-root .cl-pdf svg { width: 52%; height: 52%; }
+  /* Visão geral em grade */
+  #dash-root #geral > .cl-acoes { position: absolute; top: 0; right: 0; margin: 0; z-index: 1; }
+  #dash-root #geral > .sd { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cds-gap-md) clamp(10px, 1.1vw, 32px);
+    grid-template-areas: "num num num" "bal bal bal" "ana col mes" "tab tab tab"; }
+  #dash-root #sec-numeros { grid-area: num; padding-right: calc(clamp(34px, 4.2vh, 64px) + 12px); }
+  #dash-root #sec-balanco { grid-area: bal; }
+  #dash-root #sec-mes { grid-area: mes; min-height: 0; }
+  #dash-root #sec-analistas, #dash-root #sec-analistas > .sd-grid { display: contents; }
+  #dash-root #sec-analistas > .cl-h2 { display: none; }
+  #dash-root #card-analistas { grid-area: ana; }
+  #dash-root #card-colunas { grid-area: col; }
+  #dash-root #card-tabela-analistas { grid-area: tab; }
+  #dash-root .sd-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  #dash-root .cl-balanco { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  #dash-root #geral .sd-note { display: none; }
+  #dash-root #sec-mes > .cl-h2 { display: none; }
+  #dash-root #card-analistas, #dash-root #card-colunas, #dash-root #card-mes-geral { height: var(--tv-alto, auto); overflow: hidden; box-sizing: border-box; }
+  #dash-root #card-mes-geral::before { content: "Tarefas por mês de abertura (últimos 3 meses)"; font-family: var(--cl-display); font-size: clamp(.85rem, 1.7vh, 2rem);
+    font-weight: 800; text-transform: uppercase; color: var(--cl-titulo); line-height: 1.2; }
+  #dash-root #chart-analistas, #dash-root #chart-colunas, #dash-root #chart-mes-geral { flex: 1 1 auto; min-height: 0 !important; overflow: auto; }
+  #dash-root #chart-analistas .sd-rows, #dash-root #chart-colunas .sd-rows { height: 100%; justify-content: space-between; gap: 2px; }
+  #dash-root #geral .sd-row { grid-template-columns: minmax(6rem, 38%) 1fr; }
+  #dash-root #geral .sd-bar { height: clamp(8px, 1.5vh, 34px); }
+}
 @media (max-width: 560px) { #dash-root .cl-bal-item { border-right: 0; border-bottom: 1px solid var(--cl-linha); } #dash-root .cl-bal-item:last-child { border-bottom: 0; } }
 </style>
 
@@ -1311,6 +1361,7 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
     document.getElementById('g-recorte').textContent = ativo ? 'Recorte aplicado a todas as abas e ao PDF.' : 'Vale para todas as abas e para o PDF.';
   };
 
+  const TV = window.matchMedia('(min-width: 1100px) and (min-aspect-ratio: 4/3)');
   // Tabs
   const tabs = [...root.querySelectorAll('.sd-tab')];
   const show = (page) => {
@@ -1440,7 +1491,9 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
     box.querySelectorAll('svg').forEach((n) => n.remove());
     const rows = st.status === 'ok' ? st.data : [];
     if (!rows.length) return;
-    const W = Math.max(280, box.clientWidth), H = 240, mt = 18, mb = 42, ml = 34, mr = 8;
+    const tvH = boxId === 'chart-mes-geral' && TV.matches ? box.clientHeight : 0;
+    const fs = tvH ? parseFloat(getComputedStyle(document.getElementById('leg-mes-geral')).fontSize) || 12 : 12;
+    const W = Math.max(280, box.clientWidth), H = tvH > 150 ? tvH - 6 : 240, mt = Math.round(fs * 1.6), mb = Math.round(fs * 3.5), ml = Math.round(fs * 2.9), mr = 8;
     const x = d3.scaleBand(rows.map((r) => r.mes), [ml, W - mr]).padding(0.25);
     const y = d3.scaleLinear([0, d3.max(rows, (r) => r.tarefas) || 1], [H - mb, mt]).nice();
     const svg = d3.create('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Tarefas ativas por mês de abertura');
@@ -1470,7 +1523,7 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
     });
     const step = x.bandwidth() < 34 ? 2 : 1;
     svg.append('g').selectAll('text').data(rows.filter((r, i) => i % step === 0 || i === rows.length - 1)).join('text')
-      .attr('x', (r) => x(r.mes) + x.bandwidth() / 2).attr('y', H - mb + 16).attr('text-anchor', 'middle')
+      .attr('x', (r) => x(r.mes) + x.bandwidth() / 2).attr('y', H - mb + Math.round(fs * 1.4)).attr('text-anchor', 'middle')
       .attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text((r) => mesLabel(r.mes));
     svg.append('line').attr('x1', ml).attr('x2', W - mr).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', 'var(--cds-chart-axis)');
     box.prepend(svg.node());
@@ -2245,7 +2298,21 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
     bar.append(msg, btn); p.prepend(bar);
   });
 
+  // Gestão à vista: altura disponível para os 3 cartões da Visão geral (analistas, colunas, mês) caberem na tela.
+  const ajustaTV = () => {
+    const cl = root.querySelector('.cl'); if (!cl) return;
+    if (!TV.matches || window.sdCurrent !== 'geral') { cl.style.removeProperty('--tv-alto'); return; }
+    const card = document.getElementById('card-analistas');
+    const topo = card.getBoundingClientRect().top + window.scrollY;
+    cl.style.setProperty('--tv-alto', Math.max(220, Math.floor(window.innerHeight - topo - 10)) + 'px');
+  };
+  let tvTimer = null;
+  const reTV = () => { clearTimeout(tvTimer); tvTimer = setTimeout(() => window.sdDraw && window.sdDraw(), 150); };
+  window.addEventListener('resize', reTV);
+  if (TV.addEventListener) TV.addEventListener('change', reTV);
+
   window.sdDraw = () => {
+    ajustaTV();
     drawFiltros();
     const k = rec('kpis');
     const k0 = k.status === 'ok' ? k.data[0] : null;
