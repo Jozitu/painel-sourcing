@@ -60,20 +60,9 @@ window.dash=(function(){
   background: var(--cl-bg); color: var(--cl-texto); font-family: var(--cl-corpo);
   padding-block: 0 var(--cds-pad-xl);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) #dash-root .cl {
-    --cl-bg: #00062A; --cl-painel: #000C54; --cl-suave: #000F68; --cl-linha: #0018A7;
-    --cl-texto: #FFFFFF; --cl-texto-2: #AABEE6; --cl-titulo: #FFFFFF;
-    --cl-mau: #EF394E; --cl-ok: #8EA8DE;
-    --cl-s-atraso: #EF394E; --cl-s-prazo: #AABEE6; --cl-s-sem: #1C52BD; --cl-s-2: #557DCE;
-    --cl-faixa-grade: rgba(198, 212, 239, .10);
-    --cds-chart-grid: #00127D; --cds-chart-axis: #3967C5; --cds-chart-reference: #7193D6;
-    --cds-surface-popover: #000F68; --cds-border: #0018A7; --cds-text-secondary: #AABEE6; --cds-shadow-popover: 0 6px 20px rgba(0, 3, 21, .6);
-    --wf-total: #C6D4EF; --wf-mais: #EF394E; --wf-menos: #557DCE;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] #dash-root .cl {
+/* Modo noite (azul, padrão do painel e da TV) e modo dia (branco): botão Dia/Noite no canto direito da faixa (23/10/2026, pedido do João).
+   A escolha fica salva no navegador de cada tela; sem escolha salva, abre no modo noite. */
+#dash-root .cl.cl-noite {
   --cl-bg: #00062A; --cl-painel: #000C54; --cl-suave: #000F68; --cl-linha: #0018A7;
   --cl-texto: #FFFFFF; --cl-texto-2: #AABEE6; --cl-titulo: #FFFFFF;
   --cl-mau: #EF394E; --cl-ok: #8EA8DE;
@@ -255,10 +244,23 @@ window.dash=(function(){
   #dash-root #geral .sd-bar { height: var(--row-bar, clamp(8px, 1.5vh, 34px)); }
 }
 @media (max-width: 560px) { #dash-root .cl-bal-item { border-right: 0; border-bottom: 1px solid var(--cl-linha); } #dash-root .cl-bal-item:last-child { border-bottom: 0; } }
+/* Botão Dia/Noite no canto direito da faixa */
+#dash-root .cl-faixa { position: relative; }
+#dash-root .cl-modo { position: absolute; top: max(10px, 1vh); right: max(16px, 1.6vw); z-index: 2; display: inline-flex; border: 1px solid var(--cl-faixa-2); border-radius: 999px; padding: 2px; background: rgba(0, 3, 21, .25); }
+#dash-root .cl-modo button { font: inherit; font-family: var(--cl-corpo); font-size: var(--cds-font-size-caption); font-weight: 600; letter-spacing: .02em; color: var(--cl-faixa-texto); background: transparent; border: 0; border-radius: 999px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+#dash-root .cl-modo button[aria-pressed="true"] { background: var(--cl-branco); color: var(--cl-azul); }
+#dash-root .cl-modo button:focus-visible { outline: 2px solid var(--cl-branco); outline-offset: 2px; }
+#dash-root .cl-modo svg { width: 1.1em; height: 1.1em; }
+#dash-root .cl-faixa .cl-in { padding-right: max(16px, 190px); }
+@media (max-width: 560px) { #dash-root .cl-faixa .cl-in { padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-top: 52px; } }
 </style>
 
-<div class="cl">
+<div class="cl cl-noite" id="cl-tema">
 <header class="cl-faixa" id="topo">
+  <div class="cl-modo" role="group" aria-label="Cores do painel">
+    <button type="button" data-modo="dia" aria-pressed="false" title="Fundo branco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>Dia</button>
+    <button type="button" data-modo="noite" aria-pressed="true" title="Fundo azul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>Noite</button>
+  </div>
   <div class="cl-in">
     <span class="cl-etiqueta">Sourcing | China Link</span>
     <h2 class="cl-h1">Painel do <span class="cl-caixa">Sourcing</span></h2>
@@ -2380,6 +2382,23 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
       drawTarefas(dash.data('tarefas'));
     }
   };
+
+  // Botão Dia/Noite (padrão: noite, azul). A escolha fica salva só neste navegador.
+  (() => {
+    const cl = document.getElementById('cl-tema'); if (!cl) return;
+    const btns = [...cl.querySelectorAll('.cl-modo button')];
+    const aplica = (modo) => {
+      const noite = modo !== 'dia';
+      cl.classList.toggle('cl-noite', noite);
+      btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === (noite ? 'noite' : 'dia'))));
+      const bg = noite ? '#00062A' : '#FFFFFF';
+      document.documentElement.style.background = bg; document.body.style.background = bg;
+      document.documentElement.style.colorScheme = noite ? 'dark' : 'light';
+    };
+    let salvo = null; try { salvo = localStorage.getItem('painel-sourcing-modo'); } catch (e) {}
+    aplica(salvo === 'dia' ? 'dia' : 'noite');
+    btns.forEach((b) => b.addEventListener('click', () => { aplica(b.dataset.modo); try { localStorage.setItem('painel-sourcing-modo', b.dataset.modo); } catch (e) {} }));
+  })();
 
   dash.onData(() => window.sdDraw());
 })();
