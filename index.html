@@ -257,7 +257,11 @@ window.dash=(function(){
 /* Aba Entregas (desde 28/10/2026) */
 #dash-root #ent-topo { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--cds-gap-md); align-items: end; }
 #dash-root #ent-topo label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cds-font-size-caption); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--cl-texto-2); }
-#dash-root #ent-analista { min-width: min(100%, 18rem); font: inherit; font-size: var(--cds-font-size-body); padding: 6px 10px; }
+#dash-root .ent-quem { display: flex; flex-direction: column; gap: 4px; min-width: min(100%, 14rem); }
+#dash-root .ent-quem-rot { font-size: var(--cds-font-size-caption); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--cl-titulo); }
+#dash-root #ent-quem { font-size: var(--cds-font-size-body); }
+#dash-root #ent-time tr.is-sel td { font-weight: 700; background: var(--cl-suave); }
+#dash-root #ent-time tr.ent-total td { font-weight: 800; border-top: 2px solid var(--cl-linha); }
 #dash-root #ent-resumo-txt { white-space: pre-line; line-height: 1.55; margin: 0; }
 #dash-root .ent-dias { display: flex; flex-direction: column; gap: 3px; max-height: 26rem; overflow: auto; }
 #dash-root .ent-dias .lin { display: grid; grid-template-columns: minmax(0, 15rem) 1fr 3.2rem; gap: 8px; align-items: center; font-size: var(--cds-font-size-caption); }
@@ -644,7 +648,7 @@ window.dash=(function(){
   <section class="sd-page" id="entregas" data-page="entregas" hidden>
     <div class="sd">
       <div class="sd-card" id="ent-topo">
-        <label for="ent-analista">Analista do sourcing<select id="ent-analista"></select></label>
+        <div class="ent-quem"><span class="ent-quem-rot">Recorte</span><b id="ent-quem">Time todo</b></div>
         <p class="sd-note" id="ent-nota" style="flex: 1 1 22rem; margin: 0"></p>
       </div>
       <div class="sd-kpis" id="ent-kpis">
@@ -652,6 +656,16 @@ window.dash=(function(){
         <div class="sd-kpi"><span class="sd-kpi-label">Reviews</span><span class="sd-kpi-value" id="ent-k-reviews">—</span><span class="cl-kpi-nota" id="ent-n-reviews"></span></div>
         <div class="sd-kpi"><span class="sd-kpi-label">Entregues</span><span class="sd-kpi-value" id="ent-k-entregues">—</span><span class="cl-kpi-nota" id="ent-n-entregues"></span></div>
         <div class="sd-kpi cl-destaque"><span class="sd-kpi-label">Atrasadas</span><span class="sd-kpi-value" id="ent-k-atrasadas">—</span><span class="cl-kpi-nota" id="ent-n-atrasadas"></span></div>
+      </div>
+      <div class="sd-card" id="ent-card-time">
+        <h3>Entregas e reviews do mês por analista</h3>
+        <p class="sd-note">Mês inteiro, time todo. A linha "Time" soma todos os analistas. Use o filtro "Analista" no topo para abrir o detalhe de uma pessoa; a linha dela fica destacada.</p>
+        <div class="sd-tablebox" style="max-height: 34rem">
+          <table class="sd-table" id="ent-time">
+            <thead><tr><th>Analista</th><th class="num">Tasks</th><th class="num">Entregues</th><th class="num">Entregas</th><th class="num">Reviews (reaberturas)</th><th class="num">Reviews entregues</th><th class="num">PI</th><th class="num">Roteiros</th><th class="num">Sem entregável</th><th class="num">Atrasadas</th><th class="num">Mediana dias</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div class="sd-card" id="ent-card-resumo">
         <h3>Como foi o mês</h3>
@@ -683,7 +697,7 @@ window.dash=(function(){
         <p class="sd-note" id="ent-contagem"></p>
         <div class="sd-tablebox" style="max-height: 40rem">
           <table class="sd-table" id="ent-tabela">
-            <thead><tr><th>Tarefa</th><th>Tipo</th><th>Data</th><th class="num">Dias</th><th>Coluna</th><th>Situação</th><th>Resumo</th></tr></thead>
+            <thead><tr><th>Tarefa</th><th>Analista</th><th>Tipo</th><th>Data</th><th class="num">Dias</th><th>Coluna</th><th>Situação</th><th>Resumo</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -2116,9 +2130,7 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
 
 
   // ---------- Aba Entregas ----------
-  const entSel = document.getElementById('ent-analista');
   const entTipo = document.getElementById('ent-f-tipo');
-  entSel.addEventListener('change', () => window.sdDraw());
   entTipo.addEventListener('change', () => window.sdDraw());
   const ENT_COR = { 'Entrega': 'var(--cl-s-prazo)', 'Review': 'var(--cl-s-atraso)', 'PI de amostra': 'var(--cl-s-2)', 'Roteiro': 'var(--cl-s-sem)' };
   const ENT_TIPOS = ['Entrega', 'Review', 'PI de amostra', 'Roteiro'];
@@ -2126,16 +2138,38 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
   const nomeMes = (m) => (m ? ENT_MESES[+m.slice(5, 7) - 1] + '/' + m.slice(0, 4) : '');
   const dfmt1 = (v) => (v == null ? '—' : String(v).replace('.', ','));
   const legenda = (box, itens) => { box.replaceChildren(...itens.map(([cor, t]) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = cor; s.append(i, t); return s; })); };
-  const entAnalista = () => {
-    const st = dash.data('entregas_analistas'); if (st.status !== 'ok') return null;
-    const nomes = st.data.map((r) => r.analista);
-    if (!entSel.options.length) {
-      entSel.replaceChildren(...nomes.map((n) => new Option(n, n)));
-      const f = filtro(); entSel.value = nomes.includes(f.a) ? f.a : (nomes.includes('João Oliveira') ? 'João Oliveira' : nomes[0]);
-    }
-    return st.data.find((r) => r.analista === entSel.value) || null;
+  // A aba segue o filtro geral "Analista" (seletor único do painel). "Todos os analistas" = time todo (soma do mês).
+  const mediana = (v) => { const a = v.filter((x) => x != null).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return Math.round((a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2) * 10) / 10; };
+  const ENT_SOMA = ['tasks_totais', 'reviews', 'entregues', 'entregas_normais', 'entregas_review', 'pi_amostra', 'roteiros', 'sem_entregavel', 'atrasadas', 'em_aberto'];
+  const entTime = (lst) => {
+    const st = dash.data('entregas'); const rs = st.status === 'ok' ? st.data : [];
+    const t = { analista: 'Time', time: true, mes: lst[0] && lst[0].mes, dados_ate: lst[0] && lst[0].dados_ate, resumo: '', resumo_em: null };
+    ENT_SOMA.forEach((k) => { t[k] = d3.sum(lst, (r) => r[k] || 0); });
+    t.tasks_totais = d3.sum(lst, (r) => r.tasks_totais || 0);
+    t.dias_med_entrega = mediana(rs.filter((r) => r.conta && r.tipo === 'Entrega').map((r) => r.dias));
+    t.dias_med_review = mediana(rs.filter((r) => r.conta && r.tipo === 'Review').map((r) => r.dias));
+    return t;
   };
-  const entLinhas = (n) => { const st = dash.data('entregas'); return st.status === 'ok' ? st.data.filter((r) => r.analista === n) : []; };
+  const entAnalista = () => {
+    const st = dash.data('entregas_analistas'); if (st.status !== 'ok' || !st.data.length) return null;
+    const f = filtro();
+    if (f.a === 'Todos') return entTime(st.data);
+    return st.data.find((r) => r.analista === f.a) || { analista: f.a, fora: true, mes: st.data[0].mes, dados_ate: st.data[0].dados_ate };
+  };
+  const entLinhas = (an) => { const st = dash.data('entregas'); if (st.status !== 'ok' || !an || an.fora) return []; return an.time ? st.data : st.data.filter((r) => r.analista === an.analista); };
+  const drawEntTime = (sel) => {
+    const st = dash.data('entregas_analistas'); const tb = document.querySelector('#ent-time tbody'); tb.replaceChildren();
+    if (st.status !== 'ok') return;
+    const lst = [...st.data].sort((a, b) => (b.entregues - a.entregues) || (b.reviews - a.reviews) || a.analista.localeCompare(b.analista));
+    const linha = (r, cls) => {
+      const tr = document.createElement('tr'); if (cls) tr.className = cls;
+      [r.analista, fmt(r.tasks_totais), fmt(r.entregues), fmt(r.entregas_normais), fmt(r.reviews), fmt(r.entregas_review), fmt(r.pi_amostra), fmt(r.roteiros), fmt(r.sem_entregavel), fmt(r.atrasadas), dfmt1(r.dias_med_entrega)]
+        .forEach((v, i) => { const td = document.createElement('td'); if (i) td.className = 'num'; td.textContent = v; tr.appendChild(td); });
+      tb.appendChild(tr);
+    };
+    lst.forEach((r) => linha(r, r.analista === sel ? 'is-sel' : ''));
+    linha(entTime(st.data), 'ent-total');
+  };
   const entPareto = (rs) => {
     const at = rs.filter((r) => r.tipo === 'Em aberto' && r.situacao === 'Atrasada');
     const g = d3.rollups(at, (v) => v.length, (r) => r.causa || 'Sem análise').sort((a, b) => b[1] - a[1]);
@@ -2215,15 +2249,20 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
   };
   const drawEntregas = () => {
     const an = entAnalista();
-    const rs = an ? entLinhas(an.analista) : [];
+    const rs = entLinhas(an);
+    document.getElementById('ent-quem').textContent = !an ? '—' : an.time ? 'Time todo (todos os analistas)' : an.analista;
+    drawEntTime(an && !an.time ? an.analista : null);
+    if (an && an.fora) {
+      document.getElementById('ent-nota').textContent = `${an.analista} não faz parte dos 18 analistas do sourcing contados na aba Entregas. Escolha outro analista ou "Todos os analistas" no filtro do topo.`;
+    }
     const ent = rs.filter((r) => r.conta);
     const set = (id, v) => { document.getElementById(id).textContent = v; };
-    set('ent-nota', an ? `Mês de ${nomeMes(an.mes)}. Entrega = task concluída com link da PL e da simulação nos comentários, PI de amostra em PDF ou roteiro de visita postados pelo analista. Reviews = reaberturas das tasks do analista no mês. Atrasadas = tarefas abertas hoje com prazo vencido.${an.dados_ate ? ' Conclusões e reaberturas lidas no Teamwork até ' + dfmt(an.dados_ate.slice(0, 10)) + '.' : ''}` : 'Sem dados de entregas para este mês.');
+    if (!(an && an.fora)) set('ent-nota', an ? `${an.time ? 'Time todo, soma dos 18 analistas. ' : ''}Mês de ${nomeMes(an.mes)}. Entrega = task concluída com link da PL e da simulação nos comentários, PI de amostra em PDF ou roteiro de visita postados pelo analista. Reviews = reaberturas das tasks do analista no mês. Atrasadas = tarefas abertas hoje com prazo vencido.${an.dados_ate ? ' Conclusões e reaberturas lidas no Teamwork até ' + dfmt(an.dados_ate.slice(0, 10)) + '.' : ''}` : 'Sem dados de entregas para este mês.');
     set('ent-k-totais', an ? fmt(an.tasks_totais) : '—'); set('ent-n-totais', an ? `${fmt(an.em_aberto)} em aberto hoje` : '');
     set('ent-k-reviews', an ? fmt(an.reviews) : '—'); set('ent-n-reviews', an ? `${fmt(an.entregas_review)} review(s) entregue(s)` : '');
     set('ent-k-entregues', an ? fmt(an.entregues) : '—'); set('ent-n-entregues', an ? `${fmt(an.entregas_normais)} entregas · ${fmt(an.entregas_review)} reviews · ${fmt(an.pi_amostra)} PI · ${fmt(an.roteiros)} roteiros · ${fmt(an.sem_entregavel)} conclusões sem entregável` : '');
     set('ent-k-atrasadas', an ? fmt(an.atrasadas) : '—'); set('ent-n-atrasadas', an ? 'abertas com prazo vencido' : '');
-    set('ent-resumo-txt', an && an.resumo ? an.resumo : 'O resumo do mês deste analista ainda não foi escrito. Ele é escrito na rodada das 17h30.');
+    set('ent-resumo-txt', an && an.time ? 'Visão do time: veja a tabela "Entregas e reviews do mês por analista" acima. O resumo escrito é por analista; escolha um nome no filtro "Analista" do topo.' : an && an.resumo ? an.resumo : 'O resumo do mês deste analista ainda não foi escrito. Ele é escrito na rodada das 17h30.');
     set('ent-resumo-em', an && an.resumo_em ? `Escrito em ${dfmt(an.resumo_em.slice(0, 10))} a partir dos números acima e dos resumos das tasks.` : '');
     drawEntPareto(entPareto(rs));
     drawEntSemanas(ent);
@@ -2234,13 +2273,14 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
     lst.forEach((r) => {
       const tr = document.createElement('tr');
       const td1 = document.createElement('td'); const a = document.createElement('a'); a.href = r.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = r.tarefa; td1.appendChild(a);
+      const td1b = document.createElement('td'); td1b.textContent = r.analista;
       const td2 = document.createElement('td'); const p = document.createElement('span'); p.className = 'sd-pill' + (r.conta ? ' ok' : r.situacao === 'Atrasada' ? ' late' : ''); p.textContent = r.tipo; td2.appendChild(p);
       const td3 = document.createElement('td'); td3.textContent = dfmt(r.data);
       const td4 = document.createElement('td'); td4.className = 'num'; td4.textContent = dfmt1(r.dias);
       const td5 = document.createElement('td'); td5.textContent = r.coluna;
       const td6 = document.createElement('td'); td6.textContent = r.situacao + (r.situacao === 'Atrasada' && r.causa ? ' · ' + r.causa : '') + (r.falta ? ' · ' + r.falta : '');
       const td7 = document.createElement('td'); td7.className = 'sum'; td7.textContent = r.resumo;
-      tr.append(td1, td2, td3, td4, td5, td6, td7); tb.appendChild(tr);
+      tr.append(td1, td1b, td2, td3, td4, td5, td6, td7); tb.appendChild(tr);
     });
   };
 
@@ -2446,9 +2486,9 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
       });
     },
     entregas(d) {
-      const an = entAnalista(); const rs = an ? entLinhas(an.analista) : []; const ent = rs.filter((r) => r.conta);
-      d.h2(an ? `Entregas de ${an.analista}` : 'Entregas', an ? nomeMes(an.mes) : '');
-      if (!an) { d.nota('Sem dados de entregas para este mês.'); return; }
+      const an = entAnalista(); const rs = entLinhas(an); const ent = rs.filter((r) => r.conta);
+      d.h2(an ? (an.time ? 'Entregas do time' : `Entregas de ${an.analista}`) : 'Entregas', an ? nomeMes(an.mes) : '');
+      if (!an || an.fora) { d.nota(an ? document.getElementById('ent-nota').textContent : 'Sem dados de entregas para este mês.'); return; }
       d.kpis([
         { rotulo: 'Tasks totais', valor: fmt(an.tasks_totais), nota: `${fmt(an.em_aberto)} em aberto hoje` },
         { rotulo: 'Reviews', valor: fmt(an.reviews), nota: `${fmt(an.entregas_review)} entregue(s)` },
@@ -2456,7 +2496,14 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
         { rotulo: 'Atrasadas', valor: fmt(an.atrasadas), nota: 'abertas com prazo vencido', estilo: an.atrasadas ? 'vermelho' : '' },
       ]);
       d.nota(document.getElementById('ent-nota').textContent);
-      d.h3('Como foi o mês'); d.para(an.resumo || 'Resumo ainda não escrito.');
+      const stA = dash.data('entregas_analistas');
+      if (stA.status === 'ok') {
+        const lstA = [...stA.data].sort((a, b) => (b.entregues - a.entregues) || (b.reviews - a.reviews) || a.analista.localeCompare(b.analista)).concat([entTime(stA.data)]);
+        d.h3('Entregas e reviews do mês por analista');
+        d.tabela(tabCols([['Analista', 2.4, false, { negrito: true }], ['Tasks', 0.8, true], ['Entregues', 0.9, true], ['Entregas', 0.9, true], ['Reviews', 0.9, true], ['Rev. entregues', 1, true], ['PI', 0.6, true], ['Roteiros', 0.8, true], ['Sem entregável', 1, true], ['Atrasadas', 0.9, true], ['Mediana dias', 1, true]]),
+          lstA.map((r) => [r.analista, fmt(r.tasks_totais), fmt(r.entregues), fmt(r.entregas_normais), fmt(r.reviews), fmt(r.entregas_review), fmt(r.pi_amostra), fmt(r.roteiros), fmt(r.sem_entregavel), fmt(r.atrasadas), dfmt1(r.dias_med_entrega)]), { tam: 6.6 });
+      }
+      if (!an.time) { d.h3('Como foi o mês'); d.para(an.resumo || 'Resumo ainda não escrito.'); }
       const pr = entPareto(rs);
       d.h3('Pareto das atrasadas por causa');
       if (pr.length) d.barras(pr.map((r) => ({ rotulo: `#${r.rank} ${r.causa}`, segs: [[r.n, r.vital ? C.vermelho : C.claro]], total: r.n, extra: pct0(r.acumulado) })), { rotuloLarg: 230 });
@@ -2470,9 +2517,9 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
         ent.filter((r) => r.dias != null).sort((a, b) => b.dias - a.dias).map((r) => [r.tarefa, r.tipo, dfmt(r.data), dfmt1(r.dias)]), { tam: 6.8 });
       const lst = entTabela(rs);
       d.h3('Tasks do mês');
-      d.tabela(tabCols([['Tarefa', 3, false, { negrito: true }], ['Tipo', 1.4], ['Data', 0.9], ['Dias', 0.6, true], ['Coluna', 1.1], ['Situação', 1.6], ['Resumo', 5, false, { suave: true }]]),
-        lst.map((r) => [r.tarefa, r.tipo, dfmt(r.data), dfmt1(r.dias), r.coluna, r.situacao + (r.situacao === 'Atrasada' && r.causa ? ' · ' + r.causa : '') + (r.falta ? ' · ' + r.falta : ''), r.resumo]),
-        { tam: 6.4, cor: (ri, ci) => (ci === 5 && lst[ri].situacao === 'Atrasada' ? C.vermelho : null) });
+      d.tabela(tabCols([['Tarefa', 3, false, { negrito: true }], ['Analista', 1.4], ['Tipo', 1.3], ['Data', 0.9], ['Dias', 0.6, true], ['Coluna', 1.1], ['Situação', 1.6], ['Resumo', 4.6, false, { suave: true }]]),
+        lst.map((r) => [r.tarefa, r.analista, r.tipo, dfmt(r.data), dfmt1(r.dias), r.coluna, r.situacao + (r.situacao === 'Atrasada' && r.causa ? ' · ' + r.causa : '') + (r.falta ? ' · ' + r.falta : ''), r.resumo]),
+        { tam: 6.4, cor: (ri, ci) => (ci === 6 && lst[ri].situacao === 'Atrasada' ? C.vermelho : null) });
     },
     tarefas(d) {
       const lst = listaTarefas();
@@ -2486,7 +2533,7 @@ window.CL_PDF_FONTES={"regular":{"b64":"AAEAAAAPAIAAAwBwR0RFRgNJA0wAAEDgAAAAWEdQ
   const extrasAba = (aba) => {
     if (aba === 'mes') return [selTexto(rhCo) && rhCo.value ? 'coluna ' + selTexto(rhCo) : ''];
     if (aba === 'causas') return [paretoBase.value === 'atrasadas' ? 'Pareto só das atrasadas' : '', cCausa.value ? 'causa ' + cCausa.value : '', cSit.value ? 'situação ' + cSit.value : '', window.sdSel ? 'detalhe de ' + window.sdSel : ''];
-    if (aba === 'entregas') return [entSel.value ? 'analista ' + entSel.value : '', entTipo.value ? 'tipo ' + entTipo.value : ''];
+    if (aba === 'entregas') return [entTipo.value ? 'tipo ' + entTipo.value : ''];
     if (aba === 'tarefas') return [fBusca.value.trim() ? `busca "${fBusca.value.trim()}"` : '', selects.coluna.value ? 'coluna ' + selects.coluna.value : '', selects.situacao.value ? 'situação ' + selects.situacao.value : ''];
     return [];
   };
